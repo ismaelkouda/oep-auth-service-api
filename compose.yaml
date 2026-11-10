@@ -1,0 +1,14 @@
+services:
+    pgsql:
+        image: postgres:17-alpine
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_DB: oep_auth
+            POSTGRES_USER: oep
+            POSTGRES_PASSWORD: secret
+        volumes:
+            - pgsql_data:/var/lib/postgresql/data
+
+volumes:
+    pgsql_data:
