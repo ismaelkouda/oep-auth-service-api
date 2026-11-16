@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\AuthEventType;
 use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\AuthEventRecorder;
 use App\Services\AuthTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -15,7 +17,7 @@ use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
-    public function __invoke(LoginRequest $request, AuthTokenService $tokens): JsonResponse
+    public function __invoke(LoginRequest $request, AuthTokenService $tokens, AuthEventRecorder $events): JsonResponse
     {
         $password = (string) $request->validated('password');
 
@@ -28,6 +30,8 @@ class LoginController extends Controller
         $matches = Hash::check($password, $user->password ?? $this->dummyHash());
 
         if ($user === null || ! $matches || ! $user->isActive() || $user->isLocked()) {
+            $events->record(AuthEventType::LoginFailed, $request, $user);
+
             return response()->json(['message' => 'Identifiants invalides.'], 401);
         }
 
@@ -37,6 +41,8 @@ class LoginController extends Controller
         }
 
         $issued = $tokens->issue($user);
+
+        $events->record(AuthEventType::LoginSucceeded, $request, $user);
 
         return response()
             ->json([

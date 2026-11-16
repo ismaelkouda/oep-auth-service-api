@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Hidden(['token_hash'])]
 class AuthToken extends Model
 {
-    use HasUuids;
+    use HasUuids, MassPrunable;
 
     public const UPDATED_AT = null;
 
@@ -47,5 +49,17 @@ class AuthToken extends Model
     public function isActive(): bool
     {
         return ! $this->isExpired() && ! $this->isRevoked();
+    }
+
+    /**
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        $limit = now()->subDays((int) config('auth_tokens.retention_days'));
+
+        return static::query()
+            ->where('expires_at', '<', $limit)
+            ->orWhere('revoked_at', '<', $limit);
     }
 }

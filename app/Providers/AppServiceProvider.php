@@ -77,5 +77,13 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(5)->by('otp-phone|'.(string) $request->input('phone')),
             ];
         });
+
+        RateLimiter::for('introspection', function (Request $request) {
+            return Limit::perMinute(6000)->by('introspection|'.$request->ip());
+        });
+
+        RateLimiter::for('password', function (Request $request) {
+            return Limit::perMinute(5)->by('password|'.($request->user('api')?->id ?: $request->ip()));
+        });
     }
 }
