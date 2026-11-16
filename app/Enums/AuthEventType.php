@@ -13,5 +13,14 @@ enum AuthEventType: string
     case Logout = 'logout';
     case PasswordChanged = 'password_changed';
     case PasswordChangeFailed = 'password_change_failed';
+    case PasswordDefined = 'password_defined';
+    case InvitationFailed = 'invitation_failed';
     case IntrospectionDenied = 'introspection_denied';
+    case StaffCreated = 'staff_created';
+    case StaffUpdated = 'staff_updated';
+    case StaffSuspended = 'staff_suspended';
+    case StaffReactivated = 'staff_reactivated';
+    case StaffUnlocked = 'staff_unlocked';
+    case StaffInvited = 'staff_invited';
+    case StaffDeleted = 'staff_deleted';
 }

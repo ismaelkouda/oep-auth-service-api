@@ -2,18 +2,25 @@
 
 namespace App\Providers;
 
+use App\Contracts\InvitationSender;
 use App\Contracts\OtpSender;
 use App\Models\User;
 use App\Services\AuthTokenService;
+use App\Services\LogInvitationSender;
 use App\Services\LogOtpSender;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Validation\UncompromisedVerifier;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\NotPwnedVerifier;
+use Illuminate\Validation\Rules\Password;
 use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,6 +36,20 @@ class AppServiceProvider extends ServiceProvider
                 : new LogOtpSender,
             default => throw new RuntimeException('Aucun fournisseur de SMS configuré pour les OTP.'),
         });
+
+        $this->app->bind(InvitationSender::class, fn (): InvitationSender => match (config('staff.invitation.driver')) {
+            'log' => $this->app->isProduction()
+                ? throw new RuntimeException('Le pilote d\'invitation « log » est interdit en production.')
+                : new LogInvitationSender,
+            default => throw new RuntimeException('Aucun fournisseur d\'e-mail configuré pour les invitations.'),
+        });
+
+        // Vérification des mots de passe compromis (HIBP, 5 premiers caractères de l'empreinte) :
+        // délai de 3 s au lieu de 30 s par défaut.
+        $this->app->extend(
+            UncompromisedVerifier::class,
+            fn (UncompromisedVerifier $verifier, Application $app): UncompromisedVerifier => new NotPwnedVerifier($app->make(HttpFactory::class), 3),
+        );
     }
 
     /**
@@ -39,6 +60,8 @@ class AppServiceProvider extends ServiceProvider
         Model::shouldBeStrict(! $this->app->isProduction());
 
         JsonResource::withoutWrapping();
+
+        Password::defaults(fn (): Password => Password::min(15)->max(128)->uncompromised());
 
         Auth::viaRequest('oep-token', function (Request $request): ?User {
             $plainText = $request->bearerToken();
@@ -84,6 +107,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('password', function (Request $request) {
             return Limit::perMinute(5)->by('password|'.($request->user('api')?->id ?: $request->ip()));
+        });
+
+        RateLimiter::for('invitation', function (Request $request) {
+            return Limit::perMinute(10)->by('invitation|'.$request->ip());
         });
     }
 }

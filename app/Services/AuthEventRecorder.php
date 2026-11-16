@@ -13,13 +13,16 @@ final class AuthEventRecorder
     /**
      * Enregistre un événement. Jamais de mot de passe, de jeton, de code OTP,
      * ni d'identifiant saisi par un inconnu (e-mail, téléphone).
+     *
+     * $user : la personne qui agit ; $subject : la cible d'une action d'administration.
      */
-    public function record(AuthEventType $type, Request $request, ?User $user = null): void
+    public function record(AuthEventType $type, Request $request, ?User $user = null, ?User $subject = null): void
     {
         $event = new AuthEvent;
         $event->forceFill([
             'event' => $type,
             'user_id' => $user?->id,
+            'subject_id' => $subject?->id,
             'ip' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 255, '') ?: null,
         ])->save();

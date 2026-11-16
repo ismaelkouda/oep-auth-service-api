@@ -38,5 +38,7 @@
         <env name="ARGON_THREADS" value="1"/>
         <env name="OTP_ALLOWED_PREFIXES" value="+225"/>
         <env name="OTP_DAILY_CAP" value="2000"/>
+        <env name="INVITATION_DRIVER" value="log"/>
+        <env name="STAFF_PASSWORD_URL" value="https://backoffice.test/define-password"/>
     </php>
 </phpunit>

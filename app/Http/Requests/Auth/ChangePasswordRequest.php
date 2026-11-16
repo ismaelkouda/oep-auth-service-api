@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
 class ChangePasswordRequest extends FormRequest
 {
@@ -12,13 +13,13 @@ class ChangePasswordRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
             'current_password' => ['required', 'string', 'max:128'],
-            'password' => ['required', 'string', 'min:15', 'max:128', 'different:current_password'],
+            'password' => ['required', 'string', Password::defaults(), 'different:current_password'],
         ];
     }
 }
