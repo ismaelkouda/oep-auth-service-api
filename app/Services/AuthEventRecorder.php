@@ -18,11 +18,14 @@ final class AuthEventRecorder
      */
     public function record(AuthEventType $type, Request $request, ?User $user = null, ?User $subject = null): void
     {
+        $requestId = $request->attributes->get('request_id');
+
         $event = new AuthEvent;
         $event->forceFill([
             'event' => $type,
             'user_id' => $user?->id,
             'subject_id' => $subject?->id,
+            'request_id' => is_string($requestId) ? $requestId : null,
             'ip' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 255, '') ?: null,
         ])->save();

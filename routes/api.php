@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\DefinePasswordController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\MeController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\RequestOtpController;
 use App\Http\Controllers\Auth\VerifyOtpController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Internal\IntrospectController;
 use App\Http\Controllers\PingController;
 use App\Http\Controllers\Staff\StaffAccountController;
@@ -16,11 +18,16 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', PingController::class);
 
+Route::get('/health/ready', HealthController::class)
+    ->middleware('throttle:health')
+    ->withoutMiddleware('throttle:api');
+
 Route::prefix('auth')->group(function () {
     Route::post('/login', LoginController::class)->middleware('throttle:login');
     Route::post('/otp/request', RequestOtpController::class)->middleware('throttle:otp');
     Route::post('/otp/verify', VerifyOtpController::class)->middleware('throttle:otp');
     Route::post('/register', RegisterController::class)->middleware('throttle:otp');
+    Route::post('/password/forgot', ForgotPasswordController::class)->middleware('throttle:forgot');
     Route::post('/password/define', DefinePasswordController::class)->middleware('throttle:invitation');
 
     Route::middleware('auth:api')->group(function () {

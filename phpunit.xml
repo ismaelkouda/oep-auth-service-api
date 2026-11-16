@@ -40,5 +40,6 @@
         <env name="OTP_DAILY_CAP" value="2000"/>
         <env name="INVITATION_DRIVER" value="log"/>
         <env name="STAFF_PASSWORD_URL" value="https://backoffice.test/define-password"/>
+        <env name="TRUSTED_PROXIES" value=""/>
     </php>
 </phpunit>

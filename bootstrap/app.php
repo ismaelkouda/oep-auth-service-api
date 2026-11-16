@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuthenticateService;
 use App\Http\Middleware\EnsureCanManageAccounts;
+use App\Http\Middleware\SecureApiResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,7 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'service' => AuthenticateService::class,
             'accounts.manage' => EnsureCanManageAccounts::class,
         ]);
-        $middleware->api(append: ['throttle:api']);
+        $middleware->api(
+            append: ['throttle:api'],
+            prepend: [AssignRequestId::class, SecureApiResponse::class],
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
