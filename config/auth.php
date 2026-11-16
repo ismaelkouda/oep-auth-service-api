@@ -42,6 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'api' => [
+            'driver' => 'oep-token',
+            'provider' => 'users',
+        ],
     ],
 
     /*
