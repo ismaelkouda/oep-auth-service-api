@@ -1,3 +1,12 @@
+x-app: &app
+    build:
+        context: .
+        target: app
+    image: oep-auth-app
+    env_file: .env
+    environment:
+        DB_HOST: pgsql
+
 services:
     pgsql:
         image: postgres:17-alpine
@@ -9,6 +18,52 @@ services:
             POSTGRES_PASSWORD: secret
         volumes:
             - pgsql_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U oep -d oep_auth"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+    # Tâche de déploiement unique : jamais lancée par chaque réplique.
+    migrate:
+        <<: *app
+        profiles: [stack]
+        command: ["php", "artisan", "migrate", "--force"]
+        depends_on:
+            pgsql:
+                condition: service_healthy
+
+    app:
+        <<: *app
+        profiles: [stack]
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+
+    # La purge quotidienne (model:prune) exige que le planificateur tourne.
+    scheduler:
+        <<: *app
+        profiles: [stack]
+        command: ["php", "artisan", "schedule:work"]
+        depends_on:
+            migrate:
+                condition: service_completed_successfully
+
+    web:
+        build:
+            context: .
+            target: web
+        image: oep-auth-web
+        profiles: [stack]
+        ports:
+            - "8080:8080"
+        depends_on:
+            - app
+        healthcheck:
+            test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/up || exit 1"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
 volumes:
     pgsql_data:

@@ -1,0 +1,866 @@
+openapi: 3.0.3
+info:
+  title: OEP - Service d'authentification
+  version: 1.0.0
+  description: >-
+    Contrat du service d'authentification de la pile Laravel. Chaque pile du projet
+    a son propre contrat, établi selon les usages de son écosystème.
+servers:
+  - url: /v1
+
+paths:
+  /ping:
+    get:
+      operationId: ping
+      summary: Vérifie que le processus répond.
+      responses:
+        '200':
+          description: Le service répond.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+
+  /health/ready:
+    get:
+      operationId: readiness
+      summary: Indique si le service peut traiter des requêtes (base de données joignable).
+      responses:
+        '200':
+          description: Prêt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '503':
+          description: Indisponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Connexion d'un agent (e-mail et mot de passe).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Jeton opaque émis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/otp/request:
+    post:
+      operationId: requestOtp
+      summary: Demande d'un code par SMS (réponse identique dans tous les cas).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneRequest'
+      responses:
+        '202':
+          description: Demande prise en compte.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/otp/verify:
+    post:
+      operationId: verifyOtp
+      summary: Connexion d'un citoyen par code SMS.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerifyRequest'
+      responses:
+        '200':
+          description: Jeton opaque émis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/register:
+    post:
+      operationId: register
+      summary: Inscription ou connexion d'un citoyen (nom, téléphone, code SMS, déclaration de majorité).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Compte créé, jeton émis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '200':
+          description: Compte citoyen existant, jeton émis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/password/forgot:
+    post:
+      operationId: forgotPassword
+      summary: Demande d'un lien de définition de mot de passe (réponse identique dans tous les cas).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '202':
+          description: Demande prise en compte.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/password/define:
+    post:
+      operationId: definePassword
+      summary: Définition du mot de passe avec le lien reçu.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefinePasswordRequest'
+      responses:
+        '204':
+          description: Mot de passe défini.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Révoque le jeton courant.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Jeton révoqué.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      operationId: me
+      summary: Identité de la personne connectée.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Identité.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/password:
+    post:
+      operationId: changePassword
+      summary: Changement du mot de passe d'un agent (révoque tous ses jetons).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Mot de passe changé.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /staff:
+    get:
+      operationId: listStaff
+      summary: Liste des agents.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserRole'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Page d'agents.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: createStaff
+      summary: Création d'un agent (invitation envoyée).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreStaffRequest'
+      responses:
+        '201':
+          description: Agent créé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /staff/{user}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      operationId: showStaff
+      summary: Détail d'un agent.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Agent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: updateStaff
+      summary: Modification d'un agent.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStaffRequest'
+      responses:
+        '200':
+          description: Agent modifié.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+    delete:
+      operationId: deleteStaff
+      summary: Suppression d'un agent (compte désactivé puis supprimé).
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Agent supprimé.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /staff/{user}/suspend:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    post:
+      operationId: suspendStaff
+      summary: Suspension d'un agent actif (révoque ses jetons).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Agent suspendu.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /staff/{user}/reactivate:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    post:
+      operationId: reactivateStaff
+      summary: Réactivation d'un agent suspendu.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Agent réactivé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /staff/{user}/unlock:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    post:
+      operationId: unlockStaff
+      summary: Déblocage d'un agent verrouillé après des échecs de connexion.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Agent débloqué.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /staff/{user}/invite:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    post:
+      operationId: inviteStaff
+      summary: Renvoi de l'invitation à un agent en attente ou actif.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Invitation envoyée.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /internal/introspect:
+    post:
+      operationId: introspect
+      summary: Introspection d'un jeton (RFC 7662), réservée à la passerelle.
+      description: >-
+        Jamais exposée publiquement. Un jeton inconnu, expiré ou révoqué donne
+        uniquement {"active": false}.
+      security:
+        - serviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntrospectRequest'
+      responses:
+        '200':
+          description: Résultat de l'introspection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Introspection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Jeton opaque « oep_ » obtenu à la connexion.
+    serviceAuth:
+      type: http
+      scheme: bearer
+      description: Secret d'introspection propre à la passerelle.
+
+  parameters:
+    UserId:
+      name: user
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Non authentifié ou identifiants invalides.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Action interdite.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ressource introuvable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: L'état actuel du compte ne permet pas cette action.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Données invalides.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+    TooManyRequests:
+      description: Trop de requêtes.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Status:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, unavailable]
+
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    ValidationError:
+      type: object
+      required: [message, errors]
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    UserStatus:
+      type: string
+      enum: [pending, active, suspended, deactivated]
+
+    UserRole:
+      type: string
+      enum: [supervisor, team_lead, manager]
+
+    Phone:
+      type: string
+      pattern: '^\+[1-9]\d{6,14}$'
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          maxLength: 128
+
+    PhoneRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          $ref: '#/components/schemas/Phone'
+
+    OtpVerifyRequest:
+      type: object
+      required: [phone, code]
+      properties:
+        phone:
+          $ref: '#/components/schemas/Phone'
+        code:
+          type: string
+          pattern: '^\d{6}$'
+
+    RegisterRequest:
+      type: object
+      required: [phone, code, name, adult]
+      properties:
+        phone:
+          $ref: '#/components/schemas/Phone'
+        code:
+          type: string
+          pattern: '^\d{6}$'
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        adult:
+          type: boolean
+          description: Doit valoir true (déclaration de majorité).
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+
+    DefinePasswordRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          maxLength: 128
+        password:
+          type: string
+          minLength: 15
+          maxLength: 128
+
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, password]
+      properties:
+        current_password:
+          type: string
+          maxLength: 128
+        password:
+          type: string
+          minLength: 15
+          maxLength: 128
+
+    StoreStaffRequest:
+      type: object
+      required: [name, email, phone, role, profile_id, organization_id]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          $ref: '#/components/schemas/Phone'
+        role:
+          $ref: '#/components/schemas/UserRole'
+        profile_id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        territory_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    UpdateStaffRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        phone:
+          $ref: '#/components/schemas/Phone'
+        role:
+          $ref: '#/components/schemas/UserRole'
+        profile_id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        territory_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    IntrospectRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          maxLength: 512
+
+    User:
+      type: object
+      required: [id, type, name, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [citizen, staff]
+        name:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+          description: supervisor, team_lead ou manager pour un agent ; null pour un citoyen.
+        profile_id:
+          type: string
+          format: uuid
+          nullable: true
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+        territory_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+    TokenResponse:
+      type: object
+      required: [token, token_type, expires_at, user]
+      properties:
+        token:
+          type: string
+          pattern: '^oep_[0-9a-f]{64}$'
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+
+    Staff:
+      type: object
+      required: [id, name, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+          description: supervisor, team_lead ou manager.
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        profile_id:
+          type: string
+          format: uuid
+          nullable: true
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+        territory_id:
+          type: string
+          format: uuid
+          nullable: true
+        locked_until:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    StaffPage:
+      type: object
+      required: [data, links, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Staff'
+        links:
+          type: object
+        meta:
+          type: object
+          required: [current_page, last_page, per_page, total]
+          properties:
+            current_page:
+              type: integer
+            last_page:
+              type: integer
+            per_page:
+              type: integer
+            total:
+              type: integer
+
+    Introspection:
+      type: object
+      required: [active]
+      properties:
+        active:
+          type: boolean
+        sub:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [citizen, staff]
+        role:
+          type: string
+          nullable: true
+        profile_id:
+          type: string
+          format: uuid
+          nullable: true
+        permissions:
+          type: array
+          items:
+            type: string
+        organization_id:
+          type: string
+          format: uuid
+          nullable: true
+        territory_id:
+          type: string
+          format: uuid
+          nullable: true
+        iat:
+          type: integer
+        exp:
+          type: integer
+        jti:
+          description: Identifiant du jeton.
