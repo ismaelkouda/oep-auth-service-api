@@ -112,7 +112,7 @@ paths:
   /auth/register:
     post:
       operationId: register
-      summary: Inscription ou connexion d'un citoyen (nom, téléphone, code SMS, déclaration de majorité).
+      summary: Inscription ou connexion d'un citoyen (nom, téléphone, code SMS).
       requestBody:
         required: true
         content:
@@ -605,7 +605,7 @@ components:
 
     RegisterRequest:
       type: object
-      required: [phone, code, name, adult]
+      required: [phone, code, name]
       properties:
         phone:
           $ref: '#/components/schemas/Phone'
@@ -616,9 +616,6 @@ components:
           type: string
           minLength: 2
           maxLength: 100
-        adult:
-          type: boolean
-          description: Doit valoir true (déclaration de majorité).
 
     ForgotPasswordRequest:
       type: object

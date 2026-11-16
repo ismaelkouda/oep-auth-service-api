@@ -55,7 +55,6 @@ class RegisterController extends Controller
             'name' => (string) $request->validated('name'),
             'phone' => $phone,
             'phone_verified_at' => now(),
-            'adult_attested_at' => now(),
             'profile_id' => Profile::query()->where('code', 'citizen')->firstOrFail()->id,
             'status' => UserStatus::Active,
         ])->save();

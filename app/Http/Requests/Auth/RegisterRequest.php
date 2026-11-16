@@ -28,8 +28,6 @@ class RegisterRequest extends FormRequest
             'code' => ['required', 'string', 'digits:'.config('otp.length')],
             // Lettres, accents, espaces, apostrophes (' et ’), points et traits d'union.
             'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\p{L}\p{M}\s\'’.-]+$/u'],
-            // Déclaration de majorité (spec R07). Aucune pièce d'identité.
-            'adult' => ['required', 'accepted'],
         ];
     }
 }

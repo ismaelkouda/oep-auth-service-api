@@ -41,7 +41,6 @@ it('inscrit un nouvel usager avec son nom, son téléphone et son code', functio
         'phone' => NEW_PHONE,
         'code' => $code,
         'name' => '  Awa   Koné ',
-        'adult' => true,
     ]);
 
     $response->assertCreated()
@@ -54,7 +53,6 @@ it('inscrit un nouvel usager avec son nom, son téléphone et son code', functio
 
     expect($user->profile_id)->toBe($this->profile->id)
         ->and($user->phone_verified_at)->not->toBeNull()
-        ->and($user->adult_attested_at)->not->toBeNull()
         ->and($user->password)->toBeNull()
         ->and($user->role)->toBeNull()
         ->and(AuthEvent::where('event', 'registered')->where('user_id', $user->id)->count())->toBe(1);
@@ -71,7 +69,6 @@ it('accepte les noms avec apostrophe typographique et trait d\'union', function 
         'phone' => NEW_PHONE,
         'code' => $code,
         'name' => 'Awa N’Guessan-Koné',
-        'adult' => true,
     ])->assertCreated()->assertJsonPath('user.name', 'Awa N’Guessan-Koné');
 });
 
@@ -82,33 +79,23 @@ it('refuse un mauvais code sans créer de compte', function () {
         'phone' => NEW_PHONE,
         'code' => '000000',
         'name' => 'Awa Koné',
-        'adult' => true,
     ])->assertUnauthorized()->assertExactJson(['message' => 'Code invalide ou expiré.']);
 
     expect(User::where('phone', NEW_PHONE)->exists())->toBeFalse();
 });
 
-it('exige la déclaration de majorité sans consommer le code', function () {
+it('ne consomme pas le code quand la validation échoue', function () {
     $code = requestCode($this, NEW_PHONE);
 
     $this->postJson('/v1/auth/register', [
         'phone' => NEW_PHONE,
         'code' => $code,
-        'name' => 'Awa Koné',
-    ])->assertUnprocessable()->assertJsonValidationErrors(['adult']);
+    ])->assertUnprocessable()->assertJsonValidationErrors(['name']);
 
     $this->postJson('/v1/auth/register', [
         'phone' => NEW_PHONE,
         'code' => $code,
         'name' => 'Awa Koné',
-        'adult' => false,
-    ])->assertUnprocessable()->assertJsonValidationErrors(['adult']);
-
-    $this->postJson('/v1/auth/register', [
-        'phone' => NEW_PHONE,
-        'code' => $code,
-        'name' => 'Awa Koné',
-        'adult' => true,
     ])->assertCreated();
 });
 
@@ -120,7 +107,6 @@ it('refuse un nom invalide', function () {
             'phone' => NEW_PHONE,
             'code' => $code,
             'name' => $name,
-            'adult' => true,
         ])->assertUnprocessable()->assertJsonValidationErrors(['name']);
     }
 
@@ -135,7 +121,6 @@ it('connecte un citoyen existant sans modifier son nom', function () {
         'phone' => $citizen->phone,
         'code' => $code,
         'name' => 'Autre Nom',
-        'adult' => true,
     ])->assertOk()->assertJsonPath('user.id', $citizen->id);
 
     expect($citizen->refresh()->name)->toBe('Nom Existant');
@@ -152,7 +137,6 @@ it('refuse un numéro d\'agent, même avec un code', function () {
         'phone' => $staff->phone,
         'code' => '123456',
         'name' => 'Intrus',
-        'adult' => true,
     ])->assertUnauthorized();
 });
 
@@ -165,7 +149,6 @@ it('n\'envoie rien hors des préfixes autorisés et refuse l\'inscription', func
         'phone' => '+33612345678',
         'code' => '123456',
         'name' => 'Awa Koné',
-        'adult' => true,
     ])->assertUnauthorized();
 });
 
@@ -196,7 +179,6 @@ it('libère le numéro d\'un compte supprimé pour une nouvelle inscription', fu
         'phone' => NEW_PHONE,
         'code' => $code,
         'name' => 'Nouveau Compte',
-        'adult' => true,
     ])->assertCreated();
 
     expect($response->json('user.id'))->not->toBe($old->id);
