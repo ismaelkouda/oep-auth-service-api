@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Contracts\OtpSender;
+use App\Enums\UserStatus;
 use App\Models\User;
 
 beforeEach(function () {
@@ -31,11 +32,21 @@ it('envoie un code à un citoyen actif et répond 202', function () {
     expect($this->sender->codes[$citizen->phone] ?? null)->toMatch('/^\d{6}$/');
 });
 
-it('répond 202 sans rien envoyer pour un numéro inconnu, un agent ou un compte inactif', function () {
+it('envoie un code à un numéro inconnu autorisé (inscription)', function () {
+    $this->postJson('/v1/auth/otp/request', ['phone' => '+2250100000000'])->assertAccepted();
+
+    expect($this->sender->codes['+2250100000000'] ?? null)->toMatch('/^\d{6}$/');
+});
+
+it('répond 202 sans rien envoyer pour un agent, un compte inactif ou un préfixe non autorisé', function () {
     $staff = User::factory()->staff()->create();
     $pending = User::factory()->pending()->create();
+    $suspended = User::factory()->suspended()->create();
+    $deactivated = User::factory()->create(['status' => UserStatus::Deactivated]);
 
-    foreach (['+2250100000000', $staff->phone, $pending->phone] as $phone) {
+    $phones = [$staff->phone, $pending->phone, $suspended->phone, $deactivated->phone, '+33612345678'];
+
+    foreach ($phones as $phone) {
         $this->postJson('/v1/auth/otp/request', ['phone' => $phone])->assertAccepted();
     }
 

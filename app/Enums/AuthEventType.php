@@ -9,6 +9,7 @@ enum AuthEventType: string
     case OtpRequested = 'otp_requested';
     case OtpVerified = 'otp_verified';
     case OtpFailed = 'otp_failed';
+    case Registered = 'registered';
     case Logout = 'logout';
     case PasswordChanged = 'password_changed';
     case PasswordChangeFailed = 'password_change_failed';

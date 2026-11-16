@@ -31,6 +31,7 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'status' => UserStatus::class,
             'phone_verified_at' => 'datetime',
+            'adult_attested_at' => 'datetime',
             'locked_until' => 'datetime',
             'password' => 'hashed',
         ];

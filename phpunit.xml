@@ -36,5 +36,7 @@
         <env name="ARGON_MEMORY" value="1024"/>
         <env name="ARGON_TIME" value="1"/>
         <env name="ARGON_THREADS" value="1"/>
+        <env name="OTP_ALLOWED_PREFIXES" value="+225"/>
+        <env name="OTP_DAILY_CAP" value="2000"/>
     </php>
 </phpunit>
